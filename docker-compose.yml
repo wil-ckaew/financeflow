@@ -1,1 +1,59 @@
-# Compose com todos os serviços
+version: '3.8'
+
+services:
+  db:
+    image: postgres:14
+    container_name: db
+    environment:
+      POSTGRES_USER: ckaew
+      POSTGRES_PASSWORD: senha123
+      POSTGRES_DB: backend_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./backend/.env
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  ml_api:
+    build:
+      context: ./ml_api
+      dockerfile: Dockerfile
+    container_name: ml_api
+    restart: always
+    ports:
+      - "5000:5000"
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  pgdata:
