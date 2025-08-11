@@ -1,11 +1,40 @@
 // Handler de vendas
-// src/handlers/sale_handler.rs
 use actix_web::{get, post, patch, delete, web, HttpResponse, Responder};
 use uuid::Uuid;
 use chrono::Utc;
 use sqlx::query_as;
 
 use crate::{db::DbPool, models::sale::Sale, schema::{CreateSale, UpdateSale}};
+
+#[get("/count")]
+pub async fn count_sales(pool: web::Data<DbPool>) -> impl Responder {
+    let result = sqlx::query!("SELECT COUNT(*) as count FROM sales")
+        .fetch_one(pool.get_ref())
+        .await;
+
+    match result {
+        Ok(row) => HttpResponse::Ok().json(serde_json::json!({ "count": row.count.unwrap_or(0) })),
+        Err(err) => {
+            eprintln!("Erro ao contar vendas: {:?}", err);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[get("/revenue")]
+pub async fn revenue_sales(pool: web::Data<DbPool>) -> impl Responder {
+    let result = sqlx::query!("SELECT COALESCE(SUM(total_price), 0) as revenue FROM sales")
+        .fetch_one(pool.get_ref())
+        .await;
+
+    match result {
+        Ok(row) => HttpResponse::Ok().json(serde_json::json!({ "revenue": row.revenue.unwrap_or(0.0) })),
+        Err(err) => {
+            eprintln!("Erro ao calcular receita: {:?}", err);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
 
 #[get("/sales")]
 pub async fn get_sales(pool: web::Data<DbPool>) -> impl Responder {
@@ -36,14 +65,18 @@ pub async fn get_sales(pool: web::Data<DbPool>) -> impl Responder {
     }
 }
 
-
-
-#[get("/sales/{id}")]
+// Note o regex abaixo para aceitar só UUID no parâmetro id
+#[get("/sales/{id:^[0-9a-fA-F\\-]{36}$}")]
 pub async fn get_sale_by_id(
-    path: web::Path<Uuid>,
+    path: web::Path<String>, 
     pool: web::Data<DbPool>,
 ) -> impl Responder {
-    let sale_id = path.into_inner();
+    let id_str = path.into_inner();
+
+    let sale_id = match Uuid::parse_str(&id_str) {
+        Ok(uuid) => uuid,
+        Err(_) => return HttpResponse::BadRequest().body("Invalid UUID"),
+    };
 
     let sale = query_as::<_, Sale>("SELECT * FROM sales WHERE id = $1")
         .bind(sale_id)
@@ -67,7 +100,6 @@ pub async fn create_sale(
 ) -> impl Responder {
     let id = Uuid::new_v4();
 
-    // Buscar preço do produto para calcular total
     let product = sqlx::query!("SELECT price FROM products WHERE id = $1", sale.product_id)
         .fetch_one(pool.get_ref())
         .await;
@@ -100,15 +132,19 @@ pub async fn create_sale(
     }
 }
 
-#[patch("/sales/{id}")]
+#[patch("/sales/{id:^[0-9a-fA-F\\-]{36}$}")]
 pub async fn update_sale(
-    path: web::Path<Uuid>,
+    path: web::Path<String>,
     sale_update: web::Json<UpdateSale>,
     pool: web::Data<DbPool>,
 ) -> impl Responder {
-    let sale_id = path.into_inner();
+    let id_str = path.into_inner();
 
-    // Busca venda para verificar existência
+    let sale_id = match Uuid::parse_str(&id_str) {
+        Ok(uuid) => uuid,
+        Err(_) => return HttpResponse::BadRequest().body("Invalid UUID"),
+    };
+
     let existing = query_as::<_, Sale>("SELECT * FROM sales WHERE id = $1")
         .bind(sale_id)
         .fetch_optional(pool.get_ref())
@@ -125,7 +161,6 @@ pub async fn update_sale(
         return HttpResponse::NotFound().body("Sale not found");
     }
 
-    // Se quiser atualizar a quantidade ou produto, buscar preço atual
     let product_id = sale_update.product_id.unwrap_or(existing.as_ref().unwrap().product_id);
     let quantity = sale_update.quantity.unwrap_or(existing.as_ref().unwrap().quantity);
 
@@ -163,12 +198,17 @@ pub async fn update_sale(
     }
 }
 
-#[delete("/sales/{id}")]
+#[delete("/sales/{id:^[0-9a-fA-F\\-]{36}$}")]
 pub async fn delete_sale(
-    path: web::Path<Uuid>,
+    path: web::Path<String>,
     pool: web::Data<DbPool>,
 ) -> impl Responder {
-    let sale_id = path.into_inner();
+    let id_str = path.into_inner();
+
+    let sale_id = match Uuid::parse_str(&id_str) {
+        Ok(uuid) => uuid,
+        Err(_) => return HttpResponse::BadRequest().body("Invalid UUID"),
+    };
 
     let result = sqlx::query!("DELETE FROM sales WHERE id = $1", sale_id)
         .execute(pool.get_ref())
@@ -184,11 +224,13 @@ pub async fn delete_sale(
     }
 }
 
-// Configura rotas para este handler, para ser chamado no mod.rs
 pub fn config_sale(cfg: &mut web::ServiceConfig) {
-    cfg.service(get_sales)
+    cfg.service(count_sales)
+        .service(revenue_sales)
+        .service(get_sales)
         .service(get_sale_by_id)
         .service(create_sale)
         .service(update_sale)
         .service(delete_sale);
 }
+

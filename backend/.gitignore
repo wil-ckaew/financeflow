@@ -1,0 +1,10 @@
+# Rust build
+/target
+
+# Python virtualenv
+/venv
+/ml_api/venv
+
+# IDE / temporários
+*.pyc
+__pycache__/

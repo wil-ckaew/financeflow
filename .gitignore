@@ -1,0 +1,11 @@
+# Ignorar a pasta de build do Rust
+# Rust build
+/target
+
+# Python virtualenv
+/venv
+/ml_api/venv
+
+# IDE / temporários
+*.pyc
+__pycache__/

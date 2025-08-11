@@ -1,6 +1,8 @@
-'use client';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+// src/components/Sidebar.tsx
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Users,
   Box,
@@ -9,40 +11,42 @@ import {
   LayoutDashboard,
   CreditCard,
   DollarSign,
-} from 'lucide-react';
+} from "lucide-react";
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-  { href: '/clients', label: 'Clientes', icon: <Users size={20} /> },
-  { href: '/products', label: 'Produtos', icon: <Box size={20} /> },
-  { href: '/sales', label: 'Vendas', icon: <ShoppingCart size={20} /> },
-  { href: '/expenses', label: 'Despesas', icon: <DollarSign size={20} /> },
-  { href: '/payments', label: 'Pagamentos', icon: <CreditCard size={20} /> },
-  { href: '/reports', label: 'Relatórios', icon: <FileText size={20} /> },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/clients", label: "Clientes", icon: Users },
+  { href: "/products", label: "Produtos", icon: Box },
+  { href: "/sales", label: "Vendas", icon: ShoppingCart },
+  { href: "/expenses", label: "Despesas", icon: DollarSign },
+  { href: "/payments", label: "Pagamentos", icon: CreditCard },
+  { href: "/reports", label: "Relatórios", icon: FileText },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-900 shadow-md hidden md:flex flex-col p-4">
-      <h2 className="text-xl font-bold mb-6 text-emerald-600">Menu</h2>
-      <nav className="flex flex-col space-y-2">
-        {navItems.map(({ href, label, icon }) => {
+    <aside className="w-64 bg-white dark:bg-gray-900 shadow-lg hidden md:flex flex-col p-4 border-r border-gray-200 dark:border-gray-800">
+      <h2 className="text-2xl font-bold mb-8 text-emerald-600 tracking-tight">
+        FinanceFlow
+      </h2>
+      <nav className="flex flex-col gap-2">
+        {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href;
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center space-x-3 p-2 rounded-lg transition-all
+              className={`flex items-center gap-3 p-3 rounded-lg font-medium transition-all duration-200
                 ${
                   isActive
-                    ? 'bg-emerald-500 text-white shadow'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-emerald-100 hover:text-emerald-700 dark:hover:bg-gray-800'
+                    ? "bg-emerald-500 text-white shadow-md"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-gray-800 hover:text-emerald-600"
                 }`}
             >
-              {icon}
-              <span className="font-medium">{label}</span>
+              <Icon size={20} />
+              {label}
             </Link>
           );
         })}

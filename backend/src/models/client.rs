@@ -1,4 +1,5 @@
 // Modelo de cliente
+//src/models/client.rs
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
